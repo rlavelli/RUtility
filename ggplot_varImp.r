@@ -17,10 +17,12 @@ varImp_ggplot <- function(varImpPlot_matrix, importance_measure = c("%IncMSE", "
                                   y = importance_measure), environment = environment()) +
     geom_point(size = 1, color = "royalblue") +
     geom_segment(aes(x = var_names, xend = var_names, y = 0, yend = varImpPlot_matrix[,importance_measure]),
-                 size = 1, color = "royalblue") +
+                 size = 2, color = "royalblue") +
     ylab(importance_measure) + xlab("Variable Name") +
+    ggtitle(importance_measure) +
     coord_flip() +
-    theme_minimal()
+    theme_minimal() +
+    theme(axis.title.x = element_blank(), axis.text.x = element_blank())
   
 }
 
@@ -29,7 +31,9 @@ set.seed(4543)
 data(mtcars)
 
 library(randomForest)
+library(dplyr)
+library(ggplot2)
 mtcars.rf <- randomForest(mpg ~ ., data=mtcars, ntree=1000, keep.forest=FALSE,
                           importance=TRUE)
-imp <- varImpPlot(mtcars.rf) # let's save the varImp object
+imp <- importance(mtcars.rf) # let's save the importance object
 varImp_ggplot(imp, importance_measure = "IncNodePurity")
