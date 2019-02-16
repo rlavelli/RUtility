@@ -1,25 +1,19 @@
 library(dplyr)
 library(xts)
-library(zoo)
-library(lubridate)
-# ---
+#---
 
+# example
 set.seed(123)
+v <- sample(750)
+t <- seq.POSIXt(from=as.POSIXct("2019-01-01"), 
+                length.out = 750, by="day")
 
-v <- sample(730)
-t <- seq.Date(from = as.Date("2019-01-01"), by="day", length.out = 730)
+ts <- xts(v, order.by=t)
 
-ts <- xts::xts(v, order.by=t)
-#class(ts) <- c("xts", "zoo", "daily") # add class 
-# ---
-
-
-# the class should be added by a function before the UseMethod()?
-
-# generic method
+# generic s3 method
 resample <- function (x, ...) {
   date <- index(x) #xts
-  split_date <- stringr::str_split("2019-01-01", "-| |:", simplify=T)
+  split_date <- stringr::str_split(date[1], "-| |:", simplify=T)
   
   if(length(split_date)==3) {
     class(x) <- c(class(x), "daily")
@@ -28,9 +22,9 @@ resample <- function (x, ...) {
   
   UseMethod("resample", x)
 }
-# ---
 
 
+# daily method
 # 
 resample.daily <- function(x, to, fun = "mean") {
   
@@ -39,57 +33,23 @@ resample.daily <- function(x, to, fun = "mean") {
   
   # to defines the resampling method
   if (to == "M") {
-    r_index <- month(as.POSIXlt(date, format="%Y-%m-%d"), abbr=T, label=T) #lubridate
-    r_index2 <- unique(year(as.POSIXlt(date, format="%Y-%m-%d")))
-    
-    # resampling
-    
-    # tt <- as.vector(sapply(paste0(r_index2, "-%s"),
-    #                       function(x) sprintf(x, unique(r_index)), USE.NAMES = F))
-    # lvl <- as.vector(sapply(paste0(r_index2, "-%s"),
-    #                       function(x) sprintf(x, levels(r_index)), USE.NAMES = F))
-    
-    #
-    
-    # res <- tibble(time = factor(tt, #!!!
-    #                             levels=lvl), #!!!
-    #               values = as.vector(coredata(x))) %>% group_by(time) %>% summarise(values = FUN(values))
-    
+    r_index <- strftime(date, format="%Y-%m")
   }
   
   if (to == "Y") {
-    r_index <- year(as.POSIXlt(date, format="%Y-%m-%d"))
-    
-    # resampling
-    res <- tibble(time = r_index, 
-                  values = as.vector(coredata(x))) %>% group_by(time) %>% summarise(values = FUN(values))
-  }
-  
-
-  #dplyr-xts
-  
-  # returns a tibble
-  return(res)
-  
-}
-
-resample.monthly <- function(x, to, fun = "mean") {
-  date <- index(x) #xts
-  FUN <- match.fun(fun) 
-  
-  if (to == "Y") {
-    r_index <- year(as.POSIXlt(date, format="%Y-%m-%d"))
+    r_index <- strftime(date, format="%Y")
   }
   
   # resampling
   res <- tibble(time = r_index, 
-                values = as.vector(coredata(x))) %>% group_by(time) %>% summarise(values = FUN(values))
-  #dplyr-xts
+                values = as.vector(coredata(x))) %>%
+                                  group_by(time) %>% summarise(values = FUN(values))
   
   # returns a tibble
   return(res)
 }
 
-# example call ---
-resample(ts, to="M", fun="mean")
+
+# example call
 resample(ts, to="Y", fun="mean")
+
